@@ -1,0 +1,60 @@
+name: SA Calculator v77 - Verify and Package
+
+"on":
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build web release
+        run: npm run build
+
+      - name: Run regression tests
+        run: npm test
+
+      - name: Verify JavaScript syntax
+        run: |
+          node --check assets/js/app.js
+          node --check assets/js/premium-ui.js
+          node --check server.js
+          node --check service-worker.js
+          node --check scripts/build.js
+
+      - name: Package source archive
+        run: |
+          zip -qr SA-Calculator-v77-Source.zip . \
+            -x '.git/*' 'node_modules/*' 'dist/*' '.github/*'
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: SA-Calculator-v77-Web-Build
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: SA-Calculator-v77-Source
+          path: SA-Calculator-v77-Source.zip
+          if-no-files-found: error
+          retention-days: 14
